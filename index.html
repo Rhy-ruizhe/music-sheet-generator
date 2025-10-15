@@ -177,8 +177,9 @@
 
         // --- AUDIO UPLOADER CLASS ---
         class AudioUploader {
-            constructor(fileInputElement, infoElement, errorElement, logger, onStateChange) {
+            constructor(fileInputElement, dropZoneElement, infoElement, errorElement, logger, onStateChange) {
                 this.fileInput = fileInputElement;
+                this.dropZoneElement = dropZoneElement;
                 this.infoElement = infoElement;
                 this.errorElement = errorElement;
                 this.logger = logger;
@@ -188,16 +189,51 @@
                 this.ALLOWED_EXTENSIONS = ['wav', 'mp3', 'm4a', 'flac'];
                 this.ALLOWED_MIME_TYPES = ['audio/wav', 'audio/wave', 'audio/x-wav', 'audio/mpeg', 'audio/mp4', 'audio/flac', 'audio/x-flac'];
                 
-                this.fileInput.addEventListener('change', this.handleFileChange.bind(this));
+                this.addEventListeners();
                 this.logger.info('AudioUploader initialized.');
             }
 
-            async handleFileChange(event) {
-                this.clear();
+            addEventListeners() {
+                this.fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+                this.dropZoneElement.addEventListener('dragover', this.handleDragOver.bind(this));
+                this.dropZoneElement.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                this.dropZoneElement.addEventListener('drop', this.handleDrop.bind(this));
+            }
+
+            handleFileSelect(event) {
                 const file = event.target.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+
+            handleDragOver(event) {
+                event.preventDefault();
+                this.dropZoneElement.classList.add('border-indigo-500');
+                this.dropZoneElement.classList.remove('border-gray-600');
+            }
+
+            handleDragLeave(event) {
+                event.preventDefault();
+                this.dropZoneElement.classList.remove('border-indigo-500');
+                this.dropZoneElement.classList.add('border-gray-600');
+            }
+
+            async handleDrop(event) {
+                event.preventDefault();
+                this.dropZoneElement.classList.remove('border-indigo-500');
+                this.dropZoneElement.classList.add('border-gray-600');
+                const file = event.dataTransfer.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+
+            async processFile(file) {
+                this.clear();
                 if (!file) return;
 
-                this.logger.info(`File selected: ${file.name}`);
+                this.logger.info(`File being processed: ${file.name}`);
 
                 const validation = this.validateFile(file);
                 if (!validation.isValid) {
@@ -555,6 +591,7 @@
                 this.logger = new Logger(this.logPanel);
                 this.uploader = new AudioUploader(
                     $('#audioFile'),
+                    $('label[for="audioFile"]'),
                     $('#fileInfo'),
                     $('#validationError'),
                     this.logger,
@@ -682,3 +719,4 @@
 </body>
 </html>
 <!-- GENERATED_BY: AUDIO2SCORE_PROMPT1.0 -->
+
