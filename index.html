@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio to Sheet Music Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple scrollbar styling for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; /* gray-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* gray-500 */
+        }
+        /* Custom focus-visible state */
+        .focus-visible-ring {
+            transition: box-shadow 0.15s ease-in-out;
+        }
+        .focus-visible-ring:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.6); /* indigo-500 with opacity */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 antialiased">
+
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">Audio to Sheet Music Converter</h1>
+            <p class="mt-2 text-lg text-gray-400">Upload an audio file and get its musical notation.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Controls & Configuration -->
+            <div class="lg:col-span-1 space-y-8">
+                <!-- Configuration Section -->
+                <section class="bg-gray-800 p-6 rounded-xl shadow-lg" aria-labelledby="config-heading">
+                    <h2 id="config-heading" class="text-xl font-semibold text-white border-b border-gray-700 pb-3 mb-4">API Configuration</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="apiKey" class="block text-sm font-medium text-gray-300 mb-1">API Key</label>
+                            <div class="relative">
+                                <input type="password" id="apiKey" name="apiKey" class="focus-visible-ring w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400" placeholder="Enter your API key">
+                                <button id="toggleApiKey" type="button" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white" aria-label="Toggle API key visibility">
+                                    <!-- Eye Icon SVG -->
+                                    <svg id="eyeIcon" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    <!-- Eye Off Icon SVG -->
+                                    <svg id="eyeOffIcon" class="h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd" />
+                                      <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.742L2.303 6.546A10.048 10.048 0 01.458 10c1.274 4.057 5.022 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="baseUrl" class="block text-sm font-medium text-gray-300 mb-1">Base URL (Optional)</label>
+                            <input type="url" id="baseUrl" name="baseUrl" class="focus-visible-ring w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400" placeholder="https://api.example.com">
+                        </div>
+                        <div class="pt-2 text-xs text-gray-500">
+                            <p><strong>Note:</strong> This is a front-end demonstration. You must provide a compatible API key and endpoint. The application sends a <code>multipart/form-data</code> POST request to <code>&lt;Base URL&gt;/v1/audio-to-score</code>.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- File Upload Section -->
+                <section class="bg-gray-800 p-6 rounded-xl shadow-lg" aria-labelledby="upload-heading">
+                    <h2 id="upload-heading" class="text-xl font-semibold text-white border-b border-gray-700 pb-3 mb-4">Upload Audio</h2>
+                    <div class="space-y-4">
+                        <label for="audioFile" class="focus-visible-ring cursor-pointer relative block w-full border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
+                            <svg class="mx-auto h-12 w-12 text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="mt-2 block text-sm font-medium text-gray-300">
+                                Click to upload or drag and drop
+                            </span>
+                             <span class="mt-1 block text-xs text-gray-500">
+                                WAV, MP3, M4A, or FLAC
+                            </span>
+                            <input id="audioFile" name="audioFile" type="file" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".wav,.mp3,.m4a,.flac,audio/wav,audio/mpeg,audio/mp4,audio/flac">
+                        </label>
+                        <div id="fileInfo" class="hidden text-sm space-y-2 bg-gray-700/50 p-4 rounded-md"></div>
+                        <div id="validationError" class="hidden text-sm text-red-400 bg-red-900/50 p-3 rounded-md"></div>
+                    </div>
+                </section>
+
+                <!-- Actions Section -->
+                <section class="bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4" aria-labelledby="actions-heading">
+                     <h2 id="actions-heading" class="sr-only">Actions</h2>
+                     <div class="flex items-center space-x-3">
+                        <button id="generateButton" disabled class="focus-visible-ring w-full sm:w-auto inline-flex justify-center items-center px-6 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors">
+                            <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="generateButtonText">Generate</span>
+                        </button>
+                        <button id="clearButton" class="focus-visible-ring w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-gray-600 text-base font-medium rounded-md shadow-sm text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors">Clear</button>
+                    </div>
+                    <div id="statusBadge" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-700 text-gray-300">Idle</div>
+                </section>
+
+            </div>
+
+            <!-- Right Column: Results & Logs -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Results Section -->
+                <section class="bg-gray-800 p-6 rounded-xl shadow-lg min-h-[400px]" aria-labelledby="results-heading">
+                    <h2 id="results-heading" class="text-xl font-semibold text-white border-b border-gray-700 pb-3 mb-4">Results</h2>
+                    <div id="resultsArea" class="prose prose-invert max-w-none">
+                        <div id="resultsPlaceholder" class="text-center text-gray-500 py-16">
+                            <svg class="mx-auto h-12 w-12" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
+                            </svg>
+                            <p class="mt-4">Sheet music will appear here after generation.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Log Panel -->
+                <section class="bg-gray-800 p-6 rounded-xl shadow-lg" aria-labelledby="log-heading">
+                    <h2 id="log-heading" class="text-xl font-semibold text-white border-b border-gray-700 pb-3 mb-4">Debug Log</h2>
+                    <div id="logPanel" class="bg-black/50 rounded-md p-4 h-64 overflow-y-auto font-mono text-xs text-gray-400 space-y-1">
+                        <!-- Log entries will be added here -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        // --- UTILITIES ---
+        const $ = (selector) => document.querySelector(selector);
+        
+        // --- LOGGER CLASS ---
+        class Logger {
+            constructor(element) {
+                this.element = element;
+                this.log('Logger initialized.');
+            }
+
+            log(message, level = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                let colorClass = 'text-gray-400';
+                if (level === 'warn') colorClass = 'text-yellow-400';
+                if (level === 'error') colorClass = 'text-red-400';
+                if (level === 'success') colorClass = 'text-green-400';
+                
+                entry.innerHTML = `<span class="text-gray-500">${timestamp}</span> <span class="${colorClass}">${message}</span>`;
+                this.element.appendChild(entry);
+                this.element.scrollTop = this.element.scrollHeight; // Auto-scroll
+            }
+
+            info(message) { this.log(message, 'info'); }
+            warn(message) { this.log(message, 'warn'); }
+            error(message) { this.log(message, 'error'); }
+            success(message) { this.log(message, 'success'); }
+        }
+
+        // --- AUDIO UPLOADER CLASS ---
+        class AudioUploader {
+            constructor(fileInputElement, infoElement, errorElement, logger, onStateChange) {
+                this.fileInput = fileInputElement;
+                this.infoElement = infoElement;
+                this.errorElement = errorElement;
+                this.logger = logger;
+                this.onStateChange = onStateChange;
+                this.file = null;
+
+                this.ALLOWED_EXTENSIONS = ['wav', 'mp3', 'm4a', 'flac'];
+                this.ALLOWED_MIME_TYPES = ['audio/wav', 'audio/wave', 'audio/x-wav', 'audio/mpeg', 'audio/mp4', 'audio/flac', 'audio/x-flac'];
+                
+                this.fileInput.addEventListener('change', this.handleFileChange.bind(this));
+                this.logger.info('AudioUploader initialized.');
+            }
+
+            async handleFileChange(event) {
+                this.clear();
+                const file = event.target.files[0];
+                if (!file) return;
+
+                this.logger.info(`File selected: ${file.name}`);
+
+                const validation = this.validateFile(file);
+                if (!validation.isValid) {
+                    this.showError(validation.error);
+                    this.onStateChange({ fileValid: false });
+                    return;
+                }
+                
+                this.file = file;
+                this.showError(null);
+                
+                try {
+                    const duration = await this.getAudioDuration(file);
+                    this.displayFileInfo(file, duration);
+                    this.onStateChange({ fileValid: true, file: this.file });
+                } catch (err) {
+                    this.logger.error(`Could not read audio duration: ${err.message}`);
+                    this.displayFileInfo(file, null);
+                    this.onStateChange({ fileValid: true, file: this.file }); // Still valid even if duration fails
+                }
+            }
+
+            validateFile(file) {
+                const extension = file.name.split('.').pop().toLowerCase();
+                if (!this.ALLOWED_EXTENSIONS.includes(extension)) {
+                    this.logger.warn(`Invalid file extension: ${extension}`);
+                    return { isValid: false, error: `Invalid file type. Allowed: ${this.ALLOWED_EXTENSIONS.join(', ')}.` };
+                }
+
+                if (!this.ALLOWED_MIME_TYPES.includes(file.type)) {
+                    this.logger.warn(`Invalid MIME type: ${file.type}`);
+                    return { isValid: false, error: `Invalid file content type. Please select a valid audio file.` };
+                }
+
+                this.logger.success(`File validation passed for ${file.name}.`);
+                return { isValid: true, error: null };
+            }
+
+            getAudioDuration(file) {
+                return new Promise((resolve, reject) => {
+                    const audio = document.createElement('audio');
+                    audio.preload = 'metadata';
+                    audio.onloadedmetadata = () => {
+                        window.URL.revokeObjectURL(audio.src);
+                        if (audio.duration === Infinity) {
+                            reject(new Error('Cannot determine duration for this stream.'));
+                        } else {
+                            resolve(audio.duration);
+                        }
+                    };
+                    audio.onerror = () => {
+                        window.URL.revokeObjectURL(audio.src);
+                        reject(new Error('Error loading audio file for duration check.'));
+                    };
+                    audio.src = window.URL.createObjectURL(file);
+                });
+            }
+
+            displayFileInfo(file, duration) {
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                let durationStr = 'N/A';
+                if (duration) {
+                    const minutes = Math.floor(duration / 60);
+                    const seconds = Math.floor(duration % 60).toString().padStart(2, '0');
+                    durationStr = `${minutes}:${seconds}`;
+                }
+                
+                this.infoElement.innerHTML = `
+                    <p><strong>File:</strong> <span class="text-gray-300 break-all">${file.name}</span></p>
+                    <p><strong>Size:</strong> <span class="text-gray-300">${sizeInMB} MB</span></p>
+                    <p><strong>Duration:</strong> <span class="text-gray-300">${durationStr}</span></p>
+                `;
+                this.infoElement.classList.remove('hidden');
+            }
+
+            showError(message) {
+                if (message) {
+                    this.errorElement.textContent = message;
+                    this.errorElement.classList.remove('hidden');
+                } else {
+                    this.errorElement.classList.add('hidden');
+                }
+            }
+            
+            clear() {
+                this.fileInput.value = '';
+                this.file = null;
+                this.infoElement.classList.add('hidden');
+                this.infoElement.innerHTML = '';
+                this.showError(null);
+            }
+        }
+
+        // --- API MANAGER CLASS ---
+        class APIManager {
+            constructor(logger) {
+                this.logger = logger;
+                this.POLL_INTERVAL_MS = 2000;
+                this.MAX_POLL_ATTEMPTS = 30;
+                this.logger.info('APIManager initialized.');
+            }
+
+            maskApiKey(key) {
+                if (key.length <= 8) return '****';
+                return `${key.slice(0, 4)}...${key.slice(-4)}`;
+            }
+
+            async generate(audioBlob, apiKey, baseUrl) {
+                const url = `${baseUrl}/v1/audio-to-score`;
+                this.logger.info(`Sending request to ${url} with key ${this.maskApiKey(apiKey)}.`);
+
+                const formData = new FormData();
+                formData.append('audio_file', audioBlob);
+                formData.append('return_formats', 'png');
+                formData.append('return_formats', 'musicxml');
+                formData.append('return_formats', 'pdf');
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${apiKey}` },
+                        body: formData,
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.status === 'succeeded') {
+                        this.logger.success('API returned immediate success.');
+                        return data;
+                    } else if (data.status === 'processing' && data.job_id) {
+                        this.logger.info(`Job submitted, processing started. Job ID: ${data.job_id}`);
+                        return this.pollJob(data.job_id, apiKey, baseUrl);
+                    } else {
+                        throw new Error('Invalid API response format.');
+                    }
+                } catch (err) {
+                    this.logger.error(`API request failed: ${err.message}`);
+                    throw err; // Re-throw to be caught by the App controller
+                }
+            }
+
+            async pollJob(jobId, apiKey, baseUrl) {
+                const url = `${baseUrl}/v1/jobs/${jobId}`;
+                let attempts = 0;
+                let delay = this.POLL_INTERVAL_MS;
+
+                while (attempts < this.MAX_POLL_ATTEMPTS) {
+                    attempts++;
+                    this.logger.info(`Polling job ${jobId}, attempt ${attempts}/${this.MAX_POLL_ATTEMPTS}...`);
+
+                    await new Promise(resolve => setTimeout(resolve, delay));
+
+                    try {
+                        const response = await fetch(url, {
+                            headers: { 'Authorization': `Bearer ${apiKey}` }
+                        });
+
+                        if (!response.ok) {
+                            // On server errors, continue polling with backoff
+                            if (response.status >= 500) {
+                                this.logger.warn(`Polling failed with server error ${response.status}. Retrying...`);
+                                delay = Math.min(delay * 2, 30000); // Exponential backoff up to 30s
+                                continue;
+                            }
+                            const errorText = await response.text();
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (data.status === 'succeeded') {
+                            this.logger.success('Polling succeeded. Job complete.');
+                            return data;
+                        } else if (data.status === 'failed') {
+                            throw new Error(`Job processing failed: ${data.error || 'Unknown error'}`);
+                        }
+                        // If still processing, loop continues
+                         delay = Math.min(delay * 1.5, 30000);
+
+                    } catch (err) {
+                        this.logger.error(`Polling request failed: ${err.message}`);
+                        throw err;
+                    }
+                }
+
+                throw new Error('Job polling timed out.');
+            }
+        }
+        
+        // --- RESULTS RENDERER CLASS ---
+        class ResultsRenderer {
+            constructor(resultsElement, placeholderElement, logger) {
+                this.resultsElement = resultsElement;
+                this.placeholderElement = placeholderElement;
+                this.logger = logger;
+                this.logger.info('ResultsRenderer initialized.');
+            }
+
+            render(data) {
+                this.clear();
+                this.placeholderElement.classList.add('hidden');
+                
+                const fragment = document.createDocumentFragment();
+                let hasContent = false;
+                
+                // Render downloads first
+                const downloadsContainer = this.createDownloadsContainer(data);
+                if (downloadsContainer) {
+                    fragment.appendChild(downloadsContainer);
+                    hasContent = true;
+                }
+                
+                // Render PNGs
+                if (data.images && Array.isArray(data.images) && data.images.length > 0) {
+                    this.logger.info(`Rendering ${data.images.length} image(s).`);
+                    fragment.appendChild(this.renderImages(data.images));
+                    hasContent = true;
+                }
+                
+                // Render PDF
+                if (data.pdf) {
+                    this.logger.info('Rendering PDF.');
+                    fragment.appendChild(this.renderPDF(data.pdf));
+                    hasContent = true;
+                }
+                
+                if (!hasContent) {
+                    this.logger.warn('No renderable content found in API response.');
+                    this.resultsElement.innerHTML = `<p class="text-center text-gray-500">No viewable results were returned, but download links may be available.</p>`;
+                }
+
+                this.resultsElement.appendChild(fragment);
+            }
+
+            createDownloadsContainer(data) {
+                const container = document.createElement('div');
+                container.className = 'mb-6 flex flex-wrap gap-4';
+                let hasDownloads = false;
+                
+                if(data.musicxml) {
+                    container.appendChild(this.createMusicXMLButton(data.musicxml));
+                    hasDownloads = true;
+                }
+                if(data.pdf) {
+                    container.appendChild(this.createPDFDownloadButton(data.pdf));
+                    hasDownloads = true;
+                }
+                
+                return hasDownloads ? container : null;
+            }
+
+            renderImages(images) {
+                const gallery = document.createElement('div');
+                gallery.className = 'space-y-4';
+                images.forEach((base64Img, index) => {
+                    const pageContainer = document.createElement('div');
+                    pageContainer.className = 'text-center';
+                    
+                    const pageLabel = document.createElement('p');
+                    pageLabel.className = 'text-sm text-gray-400 mb-2';
+                    pageLabel.textContent = `Page ${index + 1}`;
+                    
+                    const img = document.createElement('img');
+                    img.src = base64Img;
+                    img.alt = `Sheet music page ${index + 1}`;
+                    img.className = 'w-full max-w-full rounded-md shadow-md bg-white';
+                    
+                    pageContainer.appendChild(pageLabel);
+                    pageContainer.appendChild(img);
+                    gallery.appendChild(pageContainer);
+                });
+                return gallery;
+            }
+            
+            renderPDF(pdfBase64) {
+                 const container = document.createElement('div');
+                 container.className = 'w-full h-[600px] border border-gray-700 rounded-md';
+                 const object = document.createElement('object');
+                 object.data = `data:application/pdf;base64,${pdfBase64}`;
+                 object.type = 'application/pdf';
+                 object.width = '100%';
+                 object.height = '100%';
+                 
+                 const fallback = document.createElement('p');
+                 fallback.className = 'p-4 text-center';
+                 fallback.textContent = 'Your browser does not support embedding PDFs. ';
+                 const fallbackLink = this.createPDFDownloadButton(pdfBase64);
+                 fallback.appendChild(fallbackLink);
+                 object.appendChild(fallback);
+                 
+                 container.appendChild(object);
+                 return container;
+            }
+            
+            createMusicXMLButton(xmlString) {
+                const button = document.createElement('button');
+                button.textContent = 'Download MusicXML';
+                button.className = 'focus-visible-ring inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors';
+                button.onclick = () => {
+                    const blob = new Blob([xmlString], { type: 'application/vnd.recordare.musicxml+xml' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'sheet-music.musicxml';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.logger.info('Downloaded MusicXML.');
+                };
+                return button;
+            }
+            
+            createPDFDownloadButton(pdfBase64) {
+                const link = document.createElement('a');
+                link.textContent = 'Download PDF';
+                link.href = `data:application/pdf;base64,${pdfBase64}`;
+                link.download = 'sheet-music.pdf';
+                link.className = 'focus-visible-ring inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors';
+                return link;
+            }
+
+            clear() {
+                this.resultsElement.innerHTML = '';
+                this.placeholderElement.classList.remove('hidden');
+                this.logger.info('Results area cleared.');
+            }
+        }
+        
+        // --- APP CONTROLLER ---
+        class App {
+            constructor() {
+                this.state = {
+                    fileValid: false,
+                    apiKeyPresent: false,
+                    isProcessing: false,
+                    file: null
+                };
+
+                // DOM Elements
+                this.logPanel = $('#logPanel');
+                this.apiKeyInput = $('#apiKey');
+                this.baseUrlInput = $('#baseUrl');
+                this.generateButton = $('#generateButton');
+                this.statusBadge = $('#statusBadge');
+                this.resultsArea = $('#resultsArea');
+                this.clearButton = $('#clearButton');
+
+                // Initialize Modules
+                this.logger = new Logger(this.logPanel);
+                this.uploader = new AudioUploader(
+                    $('#audioFile'),
+                    $('#fileInfo'),
+                    $('#validationError'),
+                    this.logger,
+                    this.handleUploaderStateChange.bind(this)
+                );
+                this.api = new APIManager(this.logger);
+                this.renderer = new ResultsRenderer(
+                    this.resultsArea,
+                    $('#resultsPlaceholder'),
+                    this.logger
+                );
+                
+                this.logger.info('App controller initialized.');
+                this.addEventListeners();
+                this.updateUI();
+            }
+
+            addEventListeners() {
+                this.apiKeyInput.addEventListener('input', this.handleCredentialsChange.bind(this));
+                $('#toggleApiKey').addEventListener('click', this.toggleApiKeyVisibility.bind(this));
+                this.generateButton.addEventListener('click', this.handleGenerate.bind(this));
+                this.clearButton.addEventListener('click', this.handleClear.bind(this));
+            }
+
+            handleUploaderStateChange({ fileValid, file }) {
+                this.state.fileValid = fileValid;
+                this.state.file = file || null;
+                this.updateUI();
+            }
+
+            handleCredentialsChange() {
+                this.state.apiKeyPresent = this.apiKeyInput.value.trim().length > 0;
+                this.updateUI();
+            }
+            
+            toggleApiKeyVisibility() {
+                const isPassword = this.apiKeyInput.type === 'password';
+                this.apiKeyInput.type = isPassword ? 'text' : 'password';
+                $('#eyeIcon').classList.toggle('hidden', isPassword);
+                $('#eyeOffIcon').classList.toggle('hidden', !isPassword);
+            }
+
+            async handleGenerate() {
+                if (this.state.isProcessing || !this.state.file) return;
+
+                this.state.isProcessing = true;
+                this.updateUI();
+                
+                const apiKey = this.apiKeyInput.value.trim();
+                const baseUrl = this.baseUrlInput.value.trim() || 'https://api-placeholder.example.com';
+
+                try {
+                    const result = await this.api.generate(this.state.file, apiKey, baseUrl);
+                    this.logger.success('Generation process completed successfully.');
+                    this.renderer.render(result);
+                    this.setStatus('Succeeded');
+                } catch (error) {
+                    this.logger.error(`Generation failed: ${error.message}`);
+                    this.setStatus('Failed');
+                } finally {
+                    this.state.isProcessing = false;
+                    this.updateUI();
+                }
+            }
+            
+            handleClear() {
+                this.renderer.clear();
+                this.uploader.clear();
+                this.state.file = null;
+                this.state.fileValid = false;
+                this.setStatus('Idle');
+                this.updateUI();
+            }
+
+            updateUI() {
+                const canGenerate = this.state.fileValid && this.state.apiKeyPresent && !this.state.isProcessing;
+                this.generateButton.disabled = !canGenerate;
+
+                const spinner = $('#spinner');
+                const btnText = $('#generateButtonText');
+                
+                if (this.state.isProcessing) {
+                    this.apiKeyInput.disabled = true;
+                    this.baseUrlInput.disabled = true;
+                    this.uploader.fileInput.disabled = true;
+                    spinner.classList.remove('hidden');
+                    btnText.textContent = 'Generating...';
+                    this.setStatus('Generating');
+                } else {
+                    this.apiKeyInput.disabled = false;
+                    this.baseUrlInput.disabled = false;
+                    this.uploader.fileInput.disabled = false;
+                    spinner.classList.add('hidden');
+                    btnText.textContent = 'Generate';
+                    if (canGenerate) {
+                        this.setStatus('Ready');
+                    } else if (this.statusBadge.textContent === 'Succeeded' || this.statusBadge.textContent === 'Failed') {
+                        // Keep the final status
+                    } else {
+                        this.setStatus('Idle');
+                    }
+                }
+            }
+            
+            setStatus(status) {
+                this.statusBadge.textContent = status;
+                const statusClasses = {
+                    'Idle': 'bg-gray-700 text-gray-300',
+                    'Ready': 'bg-blue-600 text-white',
+                    'Generating': 'bg-yellow-600 text-yellow-50',
+                    'Polling': 'bg-yellow-600 text-yellow-50',
+                    'Succeeded': 'bg-green-600 text-white',
+                    'Failed': 'bg-red-600 text-white',
+                };
+                this.statusBadge.className = `px-3 py-1 text-sm font-medium rounded-full transition-colors ${statusClasses[status] || statusClasses['Idle']}`;
+            }
+        }
+
+        // Initialize the App
+        document.addEventListener('DOMContentLoaded', () => {
+            new App();
+        });
+
+    </script>
+</body>
+</html>
+<!-- GENERATED_BY: AUDIO2SCORE_PROMPT1.0 -->
